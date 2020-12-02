@@ -40,6 +40,10 @@ public class TrashControllerUndeleteTest
 
     private static final String REPOSITORY_WITH_TRASH_2 = "tcut-releases-with-trash-2";
 
+    private static final String REPOSITORY_WITH_TRASH_3 = "tcut-releases-with-trash-3";
+
+    private static final String REPOSITORY_WITH_TRASH_4 = "tcut-releases-with-trash-4";
+
     private static final String REPOSITORY_RELEASES = "tcut-releases";
 
     @Override
@@ -95,6 +99,61 @@ public class TrashControllerUndeleteTest
                                                      .peek()
                                                      .then()
                                                      .statusCode(HttpStatus.OK.value());
+
+        String message = String.format("The trash for '%s:%s' was restored successfully.", storageId, repositoryId);
+        validateResponseBody(response, acceptHeader, message);
+
+        final Path artifactFileInTrash = RepositoryFiles.trash(artifact10Path);
+
+        assertThat(Files.exists(artifactFileInTrash))
+                .as("Failed to undelete trash for repository '" + repositoryId + "'!")
+                .isFalse();
+        assertThat(Files.exists(artifact10Path))
+                .as("Failed to undelete trash for repository '" + repositoryId + "'!")
+                .isTrue();
+    }
+
+    @ExtendWith({ RepositoryManagementTestExecutionListener.class,
+            ArtifactManagementTestExecutionListener.class })
+    @ParameterizedTest
+    @ValueSource(strings = { MediaType.APPLICATION_JSON_VALUE,
+            MediaType.TEXT_PLAIN_VALUE })
+    void testUndeleteArtifactFromTrashForWholeRepository(String acceptHeader,
+                                                    @MavenRepository(repositoryId = REPOSITORY_WITH_TRASH_2,
+                                                            setup = MavenIndexedRepositorySetup.class)
+                                                    @RepositoryAttributes(trashEnabled = true)
+                                                            Repository repository,
+                                                    @MavenTestArtifact(repositoryId = REPOSITORY_WITH_TRASH_2,
+                                                            id = "org.carlspring.strongbox.undelete:test-artifact-undelete",
+                                                            versions =  { "1.0",
+                                                                    "1.1" })
+                                                            List<Path> artifactsPaths)
+            throws Exception
+    {
+        final String storageId = repository.getStorage().getId();
+        final String repositoryId = repository.getId();
+
+        final RepositoryPath artifact10Path = (RepositoryPath) artifactsPaths.get(1).normalize();
+
+        // Delete the artifact (this one should get placed under the .trash)
+//        client.delete(storageId,
+//                repositoryId,true);
+
+        String url = getContextBaseUrl() + "/"+storageId+"/"+repositoryId;
+
+        mockMvc.accept(acceptHeader)
+                .when()
+                .delete(url)
+                .peek()
+                .then()
+                .statusCode(HttpStatus.OK.value());
+
+        ValidatableMockMvcResponse response = mockMvc.accept(acceptHeader)
+                .when()
+                .post(url)
+                .peek()
+                .then()
+                .statusCode(HttpStatus.OK.value());
 
         String message = String.format("The trash for '%s:%s' was restored successfully.", storageId, repositoryId);
         validateResponseBody(response, acceptHeader, message);

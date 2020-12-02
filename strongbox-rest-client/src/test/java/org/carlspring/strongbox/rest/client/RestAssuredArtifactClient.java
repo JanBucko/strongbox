@@ -249,6 +249,22 @@ public class RestAssuredArtifactClient
 
     public void delete(String storageId,
                        String repositoryId,
+                       boolean force)
+    {
+        String url = getContextBaseUrl() + "/storages/" +
+                storageId + "/" + repositoryId;
+
+        givenLocal().contentType(MediaType.TEXT_PLAIN_VALUE)
+                .param("force", force)
+                .when()
+                .delete(url)
+                .peek()
+                .then()
+                .statusCode(OK);
+    }
+
+    public void delete(String storageId,
+                       String repositoryId,
                        String path,
                        boolean force)
     {
